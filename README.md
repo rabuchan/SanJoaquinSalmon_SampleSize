@@ -1,7 +1,7 @@
 # SanJoaquinSalmon_SampleSize
 R code to perform sample size simulations for acoustic telemetry studies of juvenile salmonid migration survival through Sacramento-San Joaquin River Delta
 
-Author: Rebecca Buchanan, School of Aquatic and Fishery Sciences, University of Washington
+Author: Rebecca Buchanan, School of Aquatic and Fishery Sciences, University of Washington/n
 Source: Buchanan, R. 2015. Sample Size for 2016 Chinook Tagging Study:  Supplemental Release. Prepared for USFWS, Stockton, CA.
 
 Objective: Determine size of release group necessary to be able to estimate:
