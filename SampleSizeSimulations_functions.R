@@ -18,19 +18,28 @@
 # get.C4                # compute absolute value of bias of vector of parameter estimates; remove NA and infinite values
 # get.mean              # compute mean of vector of parameter estimates; remove NA and infinite values
 # get.max               # compute maximum of vector of parameter estimates; remove NA and infinite values
+# extract.astat           # extract "a" statistic at specified site from single simulation
+# extract.bstat           # extract "b" statistic at specified site from single simulation
 
-Need versions of:
-13. sum.sim.iR1       # summarizes output of sim.mle.pari.R1 for single set of parameters and release size
-have this one: 14. sim.mle.pari.R1   # Simulate data, estimate MLEs - for single release at Durham Ferry (single release size, 1 set of parameter values)  (generic function)
-15. sim.mle           # Simulate ?? - for multiple parameter sets and release sizes (single release model) - uses sim.f and smp.dis.sum
-16. sim.sum.mle.pari  # Simulate data via likelihood model, compute MLEs, summarize results - for 1 parameter set and all release sizes specified
-17. sim.sum.mle       # Simulate data, compute MLE's, and summarize results - for all combinations of release sizes and parameter sets specified
-18. get.minR          # for parameter specified, get minimum release size (single release) according to specific criteria (output of smp.dis.sum)
-19. min.samp.size     # finds minimum sample size for estimating parameters, based on output of simulations previously run
 
-get.minR and min.samp.size would be useful. I have what I need for the others, I think.
+####
+{
+#  Need versions of:
+#    13. sum.sim.iR1       # summarizes output of sim.mle.pari.R1 for single set of parameters and release size
+#  have this one: 14. sim.mle.pari.R1   # Simulate data, estimate MLEs - for single release at Durham Ferry (single release size, 1 set of parameter values)  (generic function)
+#  15. sim.mle           # Simulate ?? - for multiple parameter sets and release sizes (single release model) - uses sim.f and smp.dis.sum
+#  16. sim.sum.mle.pari  # Simulate data via likelihood model, compute MLEs, summarize results - for 1 parameter set and all release sizes specified
+#  17. sim.sum.mle       # Simulate data, compute MLE's, and summarize results - for all combinations of release sizes and parameter sets specified
+#  18. get.minR          # for parameter specified, get minimum release size (single release) according to specific criteria (output of smp.dis.sum)
+#  19. min.samp.size     # finds minimum sample size for estimating parameters, based on output of simulations previously run
+#  
+#  get.minR and min.samp.size would be useful. I have what I need for the others, I think.
+#  # but they are for range of sample sizes, not for range of parameter sets
+}
+
 ####################################################################################################################################
-require("enableJIT")
+require("compiler")
+enableJIT(3)
 
 
 ##### The functions:
@@ -73,11 +82,11 @@ get.sR<-function(pars)
   return(pars["sR0"]*sA)
 }
 
-get.seeds.supp.wrap<-function(sim,DF.list,supp.list,A1.mat,A2.mat,B1.mat,F1.mat,G2.mat,p.full=unique(c(pars.full.DF,pars.full.supp,pars.dual.A1,pars.dual.A2,pars.dual.B1,pars.dual.F1,pars.dual.G2)))
+get.seeds.supp.wrap<-function(sim,DF.list,supp.like,A1.mat,A2.mat,B1.mat,F1.mat,G2.mat,p.full=unique(c(pars.full.DF,pars.full.supp,pars.dual.A1,pars.dual.A2,pars.dual.B1,pars.dual.F1,pars.dual.G2)))
 {
   # wrapper for get.seeds.supp
   d.stats<-DF.list[[sim]]
-  s.stats<-supp.list[[sim]]
+  s.stats<-supp.like[[sim]]
   a1.dat<-A1.mat[,sim]
   a2.dat<-A2.mat[,sim]
   b1.dat<-B1.mat[,sim]
@@ -172,7 +181,7 @@ sim.supp.seeds.pari.R1.R2<-function(parvec,R1,R2,nSim,DF.pars,supp.pars,A1.pars,
 {
   # Simulate data, calculate summary statistics and seeds for each simulation, return matrix of seeds
   
-  # For release size R1 at Durham Ferry and release size R2 downstream of A1, and single set of parameter values in par.vec (names in xx.pars)
+  # For release size R1 at Durham Ferry and release size R2 downstream of A1, and single set of parameter values in parvec (names in xx.pars)
   #   Simulate data using release-recapture model defined in xx.like and xx.vars
   #   Calculate summary statistics for each simulation
   #   Calculate seeds - for each simulation
@@ -233,7 +242,7 @@ sim.supp.seeds.pari.R1.R2<-function(parvec,R1,R2,nSim,DF.pars,supp.pars,A1.pars,
   
   ########################################################################################
   
-  par.vec<-unlist(par.vec)
+  parvec<-unlist(parvec)
   
   # compile vector of likelihood detection history parameterizations
   if(missing(DF.like))
@@ -257,6 +266,7 @@ sim.supp.seeds.pari.R1.R2<-function(parvec,R1,R2,nSim,DF.pars,supp.pars,A1.pars,
   
   if(missing(supp.like))
   {
+    supp.like<-c()
     supp.like["supp A2 G2"] <- "sA1.supp*psiA2*pA2*sA2*pG2"
     supp.like["supp A2 x"] <- "sA1.supp*psiA2*pA2*xA2"
     supp.like["supp F1 G2"] <- "sA1.supp*psiF2*pF1*sF*pG2"
@@ -350,14 +360,16 @@ sim.supp.seeds.pari.R1.R2<-function(parvec,R1,R2,nSim,DF.pars,supp.pars,A1.pars,
   vars.all<-vars.all[!duplicated(names(vars.all))]
   
   # compile vector of parameter names from primary and supplemental releases
-  if(missing(DF.pars)) DF.pars<-c("sR0","sA1","sA2","sB","sF","psiA1","psiA2","pA1","pA2","pB1","pF1","pG2")
-  if(missing(supp.pars)) supp.pars<-c("sA1.supp","sA2","sF","psiA2","pA2","pF1","pG2")
-  if(missing(A1.pars)) A1.pars<-c("pA1a","pA1b")
-  if(missing(A2.pars)) A2.pars<-c("pA2a","pA2b")
-  if(missing(B1.pars)) B1.pars<-c("pB1a","pB1b")
-  if(missing(F1.pars)) F1.pars<-c("pF1a","pF1b")
-  if(missing(G2.pars)) G2.pars<-c("pG2a","pG2b")
-  
+  {
+    if(missing(DF.pars)) DF.pars<-c("sR0","sA1","sA2","sB","sF","psiA1","psiA2","pA1","pA2","pB1","pF1","pG2")
+    if(missing(supp.pars)) supp.pars<-c("sA1.supp","sA2","sF","psiA2","pA2","pF1","pG2")
+    if(missing(A1.pars)) A1.pars<-c("pA1a","pA1b")
+    if(missing(A2.pars)) A2.pars<-c("pA2a","pA2b")
+    if(missing(B1.pars)) B1.pars<-c("pB1a","pB1b")
+    if(missing(F1.pars)) F1.pars<-c("pF1a","pF1b")
+    if(missing(G2.pars)) G2.pars<-c("pG2a","pG2b")    
+  }
+
   pars.supp.all<-unique(c(DF.pars,supp.pars,A1.pars,A2.pars,B1.pars,F1.pars,G2.pars))
   pars.supp.fit<-pars.supp.all[-match(c("pA1","pA2","pB1","pF1","pG2"),pars.supp.all)]
   
@@ -379,11 +391,11 @@ sim.supp.seeds.pari.R1.R2<-function(parvec,R1,R2,nSim,DF.pars,supp.pars,A1.pars,
   stats.supp<-apply(data.supp,2,get.stat.supp,"supp")
   
   # simulate detections at the two lines of each dual array, conditional on total number of tags detected at each dual array
-  data.A1<-sapply(unlist(lapply(stats.DF,f2.a,"A1")),sim.data.f,par.values=parvec[A2.pars], par.names=A1.pars, var.vec=A1.vars, like.vec=A1.like, nsim=1)
-  data.A2<-sapply(unlist(lapply(stats.DF,f2.a,"A2"))+unlist(lapply(stats.supp,f2.a,"A2")),sim.data.f,par.values=parvec[A2.pars], par.names=A2.pars, var.vec=A2.vars, like.vec=A2.like, nsim=1)
-  data.B1<-sapply(unlist(lapply(stats.DF,f2.a,"B1")),sim.data.f,par.values=parvec[B1.pars], par.names=B1.pars, var.vec=B1.vars, like.vec=B1.like, nsim=1)
-  data.F1<-sapply(unlist(lapply(stats.DF,f2.a,"F1"))+unlist(lapply(stats.supp,f2.a,"F1")),sim.data.f,par.values=parvec[F1.pars], par.names=F1.pars, var.vec=F1.vars, like.vec=F1.like, nsim=1)
-  data.G2<-sapply(unlist(lapply(stats.DF,f2.a,"G2"))+unlist(lapply(stats.supp,f2.a,"G2")),sim.data.f,par.values=parvec[G2.pars], par.names=G2.pars, var.vec=G2.vars, like.vec=G2.like, nsim=1)
+  data.A1<-sapply(unlist(lapply(stats.DF,extract.astat,"A1")),sim.data.f,par.values=parvec[A2.pars], par.names=A1.pars, var.vec=A1.vars, like.vec=A1.like, nsim=1)
+  data.A2<-sapply(unlist(lapply(stats.DF,extract.astat,"A2"))+unlist(lapply(stats.supp,extract.astat,"A2")),sim.data.f,par.values=parvec[A2.pars], par.names=A2.pars, var.vec=A2.vars, like.vec=A2.like, nsim=1)
+  data.B1<-sapply(unlist(lapply(stats.DF,extract.astat,"B1")),sim.data.f,par.values=parvec[B1.pars], par.names=B1.pars, var.vec=B1.vars, like.vec=B1.like, nsim=1)
+  data.F1<-sapply(unlist(lapply(stats.DF,extract.astat,"F1"))+unlist(lapply(stats.supp,extract.astat,"F1")),sim.data.f,par.values=parvec[F1.pars], par.names=F1.pars, var.vec=F1.vars, like.vec=F1.like, nsim=1)
+  data.G2<-sapply(unlist(lapply(stats.DF,extract.astat,"G2"))+unlist(lapply(stats.supp,extract.astat,"G2")),sim.data.f,par.values=parvec[G2.pars], par.names=G2.pars, var.vec=G2.vars, like.vec=G2.like, nsim=1)
   
   row.names(data.A1)<-paste("A1",c("AB","A0","B0"),sep=" ")
   row.names(data.A2)<-paste("A2",c("AB","A0","B0"),sep=" ")
@@ -411,7 +423,7 @@ sim.supp.mle.pari.R1.R2<-function(parvec,R1,R2,nSim,DF.pars,supp.pars,A1.pars,A2
 {
   # Simulate data, calculate MLE of parameters using optim, return matrix of MLE estimates (NOT IMPLEMENTED)
 
-  # For release size R1 at Durham Ferry and release size R2 downstream of A1, and single set of parameter values in par.vec (names in xx.pars)
+  # For release size R1 at Durham Ferry and release size R2 downstream of A1, and single set of parameter values in parvec (names in xx.pars)
   #   Simulate data using release-recapture model defined in xx.like and xx.vars
   #   Calculate summary statistics for each simulation
   #   Calculate seeds - for each simulation
@@ -471,7 +483,7 @@ sim.supp.mle.pari.R1.R2<-function(parvec,R1,R2,nSim,DF.pars,supp.pars,A1.pars,A2
   
   ########################################################################################
   
-  par.vec<-unlist(par.vec)
+  parvec<-unlist(parvec)
 
   
   # compile vector of likelihood detection history parameterizations
@@ -496,6 +508,7 @@ sim.supp.mle.pari.R1.R2<-function(parvec,R1,R2,nSim,DF.pars,supp.pars,A1.pars,A2
   
   if(missing(supp.like))
   {
+    supp.like<-c()
     supp.like["supp A2 G2"] <- "sA1.supp*psiA2*pA2*sA2*pG2"
     supp.like["supp A2 x"] <- "sA1.supp*psiA2*pA2*xA2"
     supp.like["supp F1 G2"] <- "sA1.supp*psiF2*pF1*sF*pG2"
@@ -618,11 +631,11 @@ sim.supp.mle.pari.R1.R2<-function(parvec,R1,R2,nSim,DF.pars,supp.pars,A1.pars,A2
   stats.supp<-apply(data.supp,2,get.stat.supp,"supp")
   
   # simulate detections at the two lines of each dual array, conditional on total number of tags detected at each dual array
-  data.A1<-sapply(unlist(lapply(stats.DF,f2.a,"A1")),sim.data.f,par.values=parvec[A2.pars], par.names=A1.pars, var.vec=A1.vars, like.vec=A1.like, nsim=1)
-  data.A2<-sapply(unlist(lapply(stats.DF,f2.a,"A2"))+unlist(lapply(stats.supp,f2.a,"A2")),sim.data.f,par.values=parvec[A2.pars], par.names=A2.pars, var.vec=A2.vars, like.vec=A2.like, nsim=1)
-  data.B1<-sapply(unlist(lapply(stats.DF,f2.a,"B1")),sim.data.f,par.values=parvec[B1.pars], par.names=B1.pars, var.vec=B1.vars, like.vec=B1.like, nsim=1)
-  data.F1<-sapply(unlist(lapply(stats.DF,f2.a,"F1"))+unlist(lapply(stats.supp,f2.a,"F1")),sim.data.f,par.values=parvec[F1.pars], par.names=F1.pars, var.vec=F1.vars, like.vec=F1.like, nsim=1)
-  data.G2<-sapply(unlist(lapply(stats.DF,f2.a,"G2"))+unlist(lapply(stats.supp,f2.a,"G2")),sim.data.f,par.values=parvec[G2.pars], par.names=G2.pars, var.vec=G2.vars, like.vec=G2.like, nsim=1)
+  data.A1<-sapply(unlist(lapply(stats.DF,extract.astat,"A1")),sim.data.f,par.values=parvec[A2.pars], par.names=A1.pars, var.vec=A1.vars, like.vec=A1.like, nsim=1)
+  data.A2<-sapply(unlist(lapply(stats.DF,extract.astat,"A2"))+unlist(lapply(stats.supp,extract.astat,"A2")),sim.data.f,par.values=parvec[A2.pars], par.names=A2.pars, var.vec=A2.vars, like.vec=A2.like, nsim=1)
+  data.B1<-sapply(unlist(lapply(stats.DF,extract.astat,"B1")),sim.data.f,par.values=parvec[B1.pars], par.names=B1.pars, var.vec=B1.vars, like.vec=B1.like, nsim=1)
+  data.F1<-sapply(unlist(lapply(stats.DF,extract.astat,"F1"))+unlist(lapply(stats.supp,extract.astat,"F1")),sim.data.f,par.values=parvec[F1.pars], par.names=F1.pars, var.vec=F1.vars, like.vec=F1.like, nsim=1)
+  data.G2<-sapply(unlist(lapply(stats.DF,extract.astat,"G2"))+unlist(lapply(stats.supp,extract.astat,"G2")),sim.data.f,par.values=parvec[G2.pars], par.names=G2.pars, var.vec=G2.vars, like.vec=G2.like, nsim=1)
   
   row.names(data.A1)<-paste("A1",c("AB","A0","B0"),sep=" ")
   row.names(data.A2)<-paste("A2",c("AB","A0","B0"),sep=" ")
@@ -684,7 +697,7 @@ sim.supp.mle.pari.R1.R2<-function(parvec,R1,R2,nSim,DF.pars,supp.pars,A1.pars,A2
   return(mat.out)
 }
 
-get.est.mat<-function(x,nSim,parnames=pars.est.supp)
+get.est.mat<-function(x,nSim,parnames=pars_est)
 {
   # reshape output of apply(...,sim.supp.seeds.pari.R1.R2)
   out.mat<-matrix(x,nrow=nSim+1,byrow=T)
@@ -692,7 +705,7 @@ get.est.mat<-function(x,nSim,parnames=pars.est.supp)
   return(out.mat)
 }
 
-get.est.mat.wrap<-function(i,xx,Nsim,Pnames=pars.est.supp)
+get.est.mat.wrap<-function(i,xx,Nsim,Pnames=pars_est)
 {
   # wrapper for get.est.mat so can use with sapply
   return(get.est.mat(xx[,i],Nsim,Pnames))
@@ -786,3 +799,18 @@ get.max<-function(x)
     # assumes first entry is true value
     x<-x[-1]; return(max(x[!is.na(x) & is.finite(x)]))
   } 
+
+extract.astat=function(x,site) 
+  {
+    # extract "a" statistic at specified site from single simulation 
+    # where a = number of tags detected at site (pooled over dual array, if applicable)
+    x$a[site]
+  }
+
+extract.bstat<-function(x,site)
+{
+  # extract "b" statistic at specific site from single simulation
+  # where b = number of tags detected both at site and downstream 
+  x$b[site]
+}
+
