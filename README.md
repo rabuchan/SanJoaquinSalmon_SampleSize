@@ -28,7 +28,7 @@ Chipps Island: G2 (dual array)
 
 Parameters estimated:  
 sR = overall survival from Durham Ferry to Chipps Island  
-sRO = survival from Durham Ferry to head of Old River  
+sR0 = survival from Durham Ferry to head of Old River  
 sA = survival from head of Old River to Chipps Island in the San Joaquin River route  
 sB = survival from head of Old River to Chipps Island in Old River route  
 sA1 = survival from head of Old River to Turner Cut Junction in the San Joaquin River  
@@ -42,3 +42,9 @@ pB1 = conditional detection probability at site B1 (Old River at its head)
 pF1 = conditional detection probability at site F1 (Turner Cut)  
 pG2 = conditional detection probability at site G2 (Chipps Island)  
 
+Approach:  
+(1) Set release sizes and simulation numbers  
+(2) Define true parameter values  
+(3) Simulate data  
+(4) For each simulation, estimate parameters using maximum likelihood  
+(5) For each parameter, calculate the proportion of simulations that meet the criteria C1 - C4  
