@@ -18,24 +18,11 @@
 # get.C4                # compute absolute value of bias of vector of parameter estimates; remove NA and infinite values
 # get.mean              # compute mean of vector of parameter estimates; remove NA and infinite values
 # get.max               # compute maximum of vector of parameter estimates; remove NA and infinite values
-# extract.astat           # extract "a" statistic at specified site from single simulation
-# extract.bstat           # extract "b" statistic at specified site from single simulation
+# extract.astat         # extract "a" statistic at specified site from single simulation
+# extract.bstat         # extract "b" statistic at specified site from single simulation
+# calculate.Ci          # for given release size combination, evaluate summarization pertinent to specified criterion 
+# get.minR.1param       # for param, gets minimum R for specified release type according to criteria C1, C2, and C3 and C4 from output of sim.supp.seeds.pari.R1.R2 (applied as list)
 
-
-####
-{
-#  Need versions of:
-#    13. sum.sim.iR1       # summarizes output of sim.mle.pari.R1 for single set of parameters and release size
-#  have this one: 14. sim.mle.pari.R1   # Simulate data, estimate MLEs - for single release at Durham Ferry (single release size, 1 set of parameter values)  (generic function)
-#  15. sim.mle           # Simulate ?? - for multiple parameter sets and release sizes (single release model) - uses sim.f and smp.dis.sum
-#  16. sim.sum.mle.pari  # Simulate data via likelihood model, compute MLEs, summarize results - for 1 parameter set and all release sizes specified
-#  17. sim.sum.mle       # Simulate data, compute MLE's, and summarize results - for all combinations of release sizes and parameter sets specified
-#  18. get.minR          # for parameter specified, get minimum release size (single release) according to specific criteria (output of smp.dis.sum)
-#  19. min.samp.size     # finds minimum sample size for estimating parameters, based on output of simulations previously run
-#  
-#  get.minR and min.samp.size would be useful. I have what I need for the others, I think.
-#  # but they are for range of sample sizes, not for range of parameter sets
-}
 
 ####################################################################################################################################
 require("compiler")
@@ -813,4 +800,73 @@ extract.bstat<-function(x,site)
   # where b = number of tags detected both at site and downstream 
   x$b[site]
 }
+
+calculate.Ci<-function(dat.object,criterion="C1")
+{
+  # for given release size combination, evaluate summarization pertinent to specified criterion
+  
+  ### Arguments
+  # dat.object = list of length 3 (e.g., dat[[1]])
+  # -- element 1 = R_DF = sample size of primary release group at Durham Ferry
+  # -- element 2 = R_supp = sample size of supplement release group
+  # -- element 3 = matrix of simulated MLEs for parameters (row 1 = true values); nrows = N_sim + 1; ncol = number of estimated parameters
+  
+  # criterion = one among c("C1","C2","C3","C4")
+  # ---- C1: proportion of simulations that generate estimates for parameter
+  # ---- C2: proportion of simulations that generate estimates > cutoff value
+  # ---- C3: standard deviation of simulation distribution of parameter estimates
+  # ---- C4: bias of parameter estimates
+  
+  # note that default cutoff value for get.C2 is 1.1. If need to compute for different cutoff value, change in get.C2 definition
+  
+  fun.tmp<-get(paste("get",criterion,sep="."))
+  C_tmp<-apply(dat.object[["mle_mat"]],2,fun.tmp)
+  C_tmp<-c(dat.object[["R_DF"]],dat.object[["R_supp"]],C_tmp)
+  names(C_tmp)[1:2]<-c("R_DF","R_supp")
+  
+  return(C_tmp)
+}
+
+get.minR.1param=function(param,dat.list,R.type=c("DF","supp"),c1=0.95,c2=0.95,Max.se=0.05,Nsims=N_sim,Max.bias=0.05)
+{
+  # for param, gets minimum R for specified release type according to criteria C1, C2, and C3 and C4 from output of sim.supp.seeds.pari.R1.R2 (applied as list)
+  # dat.list = dat
+  # R.type = release type (DF = primary, supp = supplemental)
+  # c1 and c2 = cutoff percentage for C1 and C2
+  # Max.se = maximum se allowed for C3
+  # Max.bias = maximum bias allowed for C4
+  # Nsims = number of simulations
+  
+  # this function is used in function min.samp.size
+  
+  # calculate C1, C2, C3, and C4 matrices and convert to data.frames
+  c1.full<-data.frame(do.call(rbind,lapply(dat.list,calculate.Ci,"C1")))
+  c2.full<-data.frame(do.call(rbind,lapply(dat.list,calculate.Ci,"C2")))
+  c3.full<-data.frame(do.call(rbind,lapply(dat.list,calculate.Ci,"C3")))
+  c4.full<-data.frame(do.call(rbind,lapply(dat.list,calculate.Ci,"C4")))
+  
+  # identify column index of desired release size
+  R.index<-ifelse(R.type=="DF",1,ifelse(R.type=="supp",2,NA))
+  if(is.na(R.index)) return(NA)
+  
+  # limit each ci.mat to the release size and parameter of interest
+  c1.mat<-c1.full[,c(R.index,which(names(c1.full)==param))]
+  c2.mat<-c2.full[,c(R.index,which(names(c2.full)==param))]
+  c3.mat<-c3.full[,c(R.index,which(names(c3.full)==param))]
+  c4.mat<-c4.full[,c(R.index,which(names(c4.full)==param))]
+  
+  # calculate minimum release size necessary to achieve criteria
+  min.c1<-min(c1.mat[c1.mat[,2]>=c1,1]); if(!is.finite(min.c1)) min.c1<-NA
+  min.c2<-min(c2.mat[c2.mat[,2]<=(1-c2),1]); if(!is.finite(min.c2)) min.c2<-NA
+  min.c3<-min(c3.mat[c3.mat[,2]<=Max.se,1]); if(!is.finite(min.c3)) min.c3<-NA
+  min.c4<-min(c4.mat[c4.mat[,2]<=Max.bias,1]); if(!is.finite(min.c4)) min.c4<-NA
+  if(!is.na(min.c1)) N.ests<-round(c1.mat[c1.mat[,1]==min.c1,2]*Nsims,0) else N.ests<-NA
+  if(sum(!is.na(N.ests))>0) names(N.ests)<-c1.full[c1.mat[,1]==min.c1,setdiff(c(1,2),R.index)]
+  
+  minR<-max(c(min.c1,min.c2,min.c3,min.c4))
+  return(c(minR,min.c1,min.c2,min.c3,min.c4,N.ests))
+  
+  # named elements are the number of successful estimates for the possible sample sizes of the other release
+}
+
 
