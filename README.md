@@ -42,6 +42,12 @@ pB1 = conditional detection probability at site B1 (Old River at its head)
 pF1 = conditional detection probability at site F1 (Turner Cut)  
 pG2 = conditional detection probability at site G2 (Chipps Island)  
 
+Note: either  
+examine expected performance for multiple parameter sets but for just one release size scenario (released at Durham Ferry and supplemental)  
+or  
+examine expected performance for multiple release size combinations at Durham Ferry and supplemental but just for just one parameter set  
+  
+  
 Approach:  
 (1) Set release sizes and simulation numbers  
 (2) Define true parameter values  
