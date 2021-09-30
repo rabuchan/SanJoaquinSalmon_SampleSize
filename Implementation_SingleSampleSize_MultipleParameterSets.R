@@ -7,7 +7,7 @@
 # Step 3. Define candidate release sizes and number of simulations
 # Step 4. Define vectors of parameter names used in likelihood components (optional)
 # Step 5. Define vectors of derived parameter names used in likelihood components (optional)
-# Step 6. Define expressions for detection history probability parameterizations for multinomial likelihood
+# Step 6. Define expressions for detection history probability parameterizations for multinomial likelihood (optional)
 # Step 7. Simulate data and estimate parameters using maximum likelihood (use analytical solutions for method-of-moment estimators = MLE)
 # Step 8. Compile maximum likelihood estimates into matrix
 # Step 9. Compute criteria performance summaries for criteria C1-C4
@@ -162,7 +162,7 @@ N_sim<-20  # 1000 or 5000 would be better but takes longer
 
 
 
-### Step 6. Define expressions for detection history probability parameterizations for multinomial likelihood
+### Step 6. Define expressions for detection history probability parameterizations for multinomial likelihood (optional)
 # Note: not required because built into sim.supp.seeds.pari.R1.R2()
 {
   like.full.DF<-c()
@@ -257,7 +257,13 @@ max_out<-do.call(rbind,lapply(est_pars_mat,function(xx) apply(xx,2,get.max)))
 # Note: Each of C1_out, C2_out, ..., mean_out, max_out is a matrix with nrows = number of parameter sets and ncol = number of parameters estimated
  # -- row = parameter set
  # -- column = parameter estimated
- # -- entry = proportion of simulations that meet the criterion (C1_out,...,C4_out) or mean/max of parameter MLEs across simulations
+ # -- entry:
+ # ---- C1: proportion of simulations that generate estimates for parameter
+ # ---- C2: proportion of simulations that generate estimates > cutoff value
+ # ---- C3: standard deviation of simulation distribution of parameter estimates
+ # ---- C4: bias of parameter estimates
+ # ---- mean: mean of simulation distribution of parameter estimates
+ # ---- max: maximum of simulation distribution of parameter estimates
 
 
 
