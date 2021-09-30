@@ -45,7 +45,7 @@ pG2 = conditional detection probability at site G2 (Chipps Island)
 Note: either  
 (A) examine expected performance for multiple parameter sets but for just one release size scenario (released at Durham Ferry and supplemental)  
   -- or --    
-(B)examine expected performance for multiple release size combinations at Durham Ferry and supplemental but just for just one parameter set  
+(B) examine expected performance for multiple release size combinations at Durham Ferry and supplemental but just for just one parameter set  
   
   
 Approach:  
