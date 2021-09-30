@@ -4,7 +4,7 @@ R code to perform sample size simulations for acoustic telemetry studies of juve
 Author: Rebecca Buchanan, School of Aquatic and Fishery Sciences, University of Washington\n
 Source: Buchanan, R. 2015. Sample Size for 2016 Chinook Tagging Study:  Supplemental Release. Prepared for USFWS, Stockton, CA.
 
-Objective: Determine size of release group necessary to be able to estimate:
+Objective: Determine size of release group necessary to be able to estimate:\n
 (1) survival from release to Chipps Island
 (2) route-specific survival to Chipps Island
 (3) route selection at the head of Old River and at Turner Cut
