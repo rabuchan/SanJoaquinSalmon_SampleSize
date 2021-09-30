@@ -1,13 +1,13 @@
 # SanJoaquinSalmon_SampleSize
 R code to perform sample size simulations for acoustic telemetry studies of juvenile salmonid migration survival through Sacramento-San Joaquin River Delta
 
-Author: Rebecca Buchanan, School of Aquatic and Fishery Sciences, University of Washington\n
+Author: Rebecca Buchanan, School of Aquatic and Fishery Sciences, University of Washington <br />
 Source: Buchanan, R. 2015. Sample Size for 2016 Chinook Tagging Study:  Supplemental Release. Prepared for USFWS, Stockton, CA.
 
-Objective: Determine size of release group necessary to be able to estimate:\n
-(1) survival from release to Chipps Island
-(2) route-specific survival to Chipps Island
-(3) route selection at the head of Old River and at Turner Cut
+Objective: Determine size of release group necessary to be able to estimate:<br />
+(1) survival from release to Chipps Island  
+(2) route-specific survival to Chipps Island  
+(3) route selection at the head of Old River and at Turner Cut  
 
 Estimation criteria considered:
 C1: Parameter is estimable in specified minimum percentage of simulations (e.g., 95%)
